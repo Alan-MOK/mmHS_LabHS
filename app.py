@@ -36,26 +36,28 @@ def meal():
     )
     return mm
 
-# def position(df, name):
-#     try:
-#         num = df.index[df['item'] == name].tolist()[0]
-#     except:
-#         num = 0
-#     return num
+def get_X(mode):
+    if mode == 0:
+        X = df_post.iloc[:, [1, 2, 3, 4, 5]].values.tolist()
+    elif mode == 1:
+        X = df_post.iloc[:, [1, 2, 3, 4, 5, 6]].values.tolist()
+    elif mode == 2:
+        X = df_post.iloc[:, [1, 2, 3, 4, 5, 7]].values.tolist()
+    elif mode == 3:
+        X = df_post.iloc[:, [1, 2, 3, 4, 5, 6, 7]].values.tolist()
+    return X
 
 
-# def positions(df, name_list):
-#     try:
-#         indexes = df.index[df['item'].isin(name_list)].tolist()
-#         indexes_integer = list(map(int, indexes))
-#     except:
-#         indexes_integer = 0
-#     return indexes_integer
-
-
-# if ['meals'] not in st.session_state:
-#     st.session_state['item_no'] = random.choices(range(0,10), k = 5)
-
+def get_new_X(mode):
+    if mode == 0:
+        new_X = five_mm_value['nutrient value (ave.)'].tolist()
+    elif mode == 1:
+        new_X = five_mm_value['nutrient value (ave.)'].tolist()+[BMI]
+    elif mode == 2:
+        new_X = five_mm_value['nutrient value (ave.)'].tolist()+[BP]
+    elif mode == 3:
+        new_X = five_mm_value['nutrient value (ave.)'].tolist()+[BMI,BP]
+    return [new_X]
 
 with st.sidebar:
     st.title("Please upload your data here")
@@ -90,12 +92,16 @@ else:
             'Your BMI',
             value=None,
             placeholder="Enter number...",
-            step = 0.1
+            step = 0.1,
+            min_value = 17.5,
+            max_value = 35.0
             )
         BP = st.number_input(
             'Your Blood Pressure',
             value=None,
             placeholder="Enter number...",
+            min_value = 110,
+            max_value = 200,
             step = 1
             )
 
@@ -161,7 +167,7 @@ else:
             for i in range(0,5):
                 st.write(f"No. {i+1}: ", meals[i])
         with col2:
-            st.subheader("nutrient Value")
+            st.subheader("5 Nutrient Ave. Value")
             for i in range(0,5):
                 st.write(f"{five_mm_value['nutrients'].iloc[i]}:", five_mm_value['nutrient value (ave.)'].iloc[i])
         with col3:
@@ -174,136 +180,139 @@ else:
             st.write("Blood Pressure:", BP, " mmHg")
 
 
-        tab1, tab2 = st.tabs(['Singel Layers','Double Layers'])
+        tab1, tab2 = st.tabs(['Mode','Data Table'])
+    
+        
+        if BMI is None and BP is None:
+            mode = 0
+            X = get_X(mode)
+            Y_BMI = df_post['BMI'].values.tolist()
+            Y_BP = df_post['B.P.'].values.tolist()
+            Y_HS = df_post['health_state'].values.tolist()
+            model_BMI = LinearRegression()
+            model_BP = LinearRegression()
+            model_HS = LinearRegression()
 
+            model_BMI.fit(X, Y_BMI)
+            model_BP.fit(X, Y_BP)
+            model_HS.fit(X, Y_HS)
 
-        with tab2:
-       
-            st.info('Double Layers Linear Regression Model is activated!')
-            st.write("""
-            This model will use only the 5 nutrients values to predict the BMI and the B.P. value, then in the second layer, 
-                     using the predicted value of BMI and B.P. to predict the Health State.
-                     """)
+            st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
+            st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
+            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
 
-            X = df_post.iloc[:,1:6].values.tolist()
-            Y_1 = df_post['BMI'].values.tolist()
-            Y_2 = df_post['B.P.'].values.tolist()
+            Y_HS_bar = model_HS.predict(X)
+            mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
 
-            Y = df_post.iloc[:, 6:8].values.tolist()
-            Z = df_post['health_state'].values.tolist()
+            new_X = get_new_X(mode)
+            Y_BMI_pre = model_BMI.predict(new_X)
+            Y_BP_pre = model_BP.predict(new_X)
+            Y_HS_pre = model_HS.predict(new_X)
 
-            model1Layer_1 = LinearRegression()
-            model1Layer_2 = LinearRegression()
+        elif BMI is not None and BP is None:
+            mode = 1
+            X = get_X(mode)
+            Y_BP = df_post['B.P.'].values.tolist()
+            Y_HS = df_post['health_state'].values.tolist()
 
-            model1Layer_1.fit(X,Y_1)
-            model1Layer_2.fit(X,Y_2)
+            model_BP = LinearRegression()
+            model_HS = LinearRegression()
 
-            model2Layer = LinearRegression()
-            model2Layer.fit(Y,Z)
+            model_BP.fit(X, Y_BP)
+            model_HS.fit(X, Y_HS)
 
-            col1, col_gap, col2 = st.columns([3, 2, 4])
-            with col1:
-                st.subheader('First Layer')
-                st.write("R² for the 5 nutrients value to BMI Model: ", int(model1Layer_1.score(X, Y_1)*1000)/1000)
-                st.write("R² for the 5 nutrients value to B.P. Model: ", int(model1Layer_2.score(X, Y_2)*1000)/1000)
+            st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
+            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
             
-            with col2:
-                st.subheader('Second Layer')
-                st.write("R² for BMI and B.P. to Health State Model: ", int(model2Layer.score(Y, Z)*1000)/1000)
+            Y_HS_bar = model_HS.predict(X)
+            mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
 
-            st.title(' ')
+            new_X = get_new_X(mode)
+            Y_BP_pre = model_BP.predict(new_X)
+            Y_HS_pre = model_HS.predict(new_X)
 
+        elif BMI is None and BP is not None:
+            mode = 2
+            X = get_X(mode)
+            Y_BMI = df_post['BMI'].values.tolist()
+            Y_HS = df_post['health_state'].values.tolist()
 
-            st.subheader("Predicted Health State")
-            x_new = [five_mm_value['nutrient value (ave.)'].to_list()]
-            
-            if BMI is None:
-                Y_1_predict = model1Layer_1.predict(x_new)
-            else:
-                Y_1_predict = [BMI]
-            
-            if BP is None:
-                Y_2_predict = model1Layer_2.predict(x_new)
-            else:
-                Y_2_predict = [BP]
+            model_BMI = LinearRegression()
+            model_HS = LinearRegression()
 
-            Y_2_input = [[Y_1_predict[0],Y_2_predict[0]]]
-            Z_predict = model2Layer.predict(Y_2_input)
+            model_BMI.fit(X, Y_BMI)
+            model_HS.fit(X, Y_HS)
 
-            st.write("***Two Layer Linear Regression, Predicted Health State:***",int(Z_predict[0]*1000)/1000)
+            st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
+            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
+
+            Y_HS_bar = model_HS.predict(X)
+            mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
+
+            new_X = get_new_X(mode)
+            Y_BMI_pre = model_BMI.predict(new_X)
+            Y_HS_pre = model_HS.predict(new_X)
+
+        else:
+            mode = 3
+            X = get_X(mode)
+            Y_HS = df_post['health_state'].values.tolist()
+
+            model_HS = LinearRegression()
+            model_HS.fit(X, Y_HS)
+
+            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
+
+            Y_HS_bar = model_HS.predict(X)
+            mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
+
+            new_X = get_new_X(mode)
+            Y_HS_pre = model_HS.predict(new_X)
 
 
         with tab1:
-            st.info('Single Layer Linear Regression Model is Activated')
-            columns = five_mm_value['nutrients'].to_list()
-            if BMI is not None:
-                columns.append("BMI")
-            if BP is not None:
-                columns.append("B.P.")
-            
-
-            st.title(' ')
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("The output value of the model")
+            if mode == 0:
+                st.info(f"""
+                The output result is the preidction of BMI, Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
                 
-                y_name = df_post.columns.tolist()[-1]
-                st.write("***Y-Value:***", f':rainbow[{y_name}]')
-
-            with col2:
-                x_name = columns
-                st.write('***X-Value:***', x_name)
-
-
-            X = df_post[x_name].values.tolist()
-            Y = df_post[y_name].values.tolist()
-
-            # Create a new linear regression model
-            model_single_layer = LinearRegression()
-            model_single_layer.fit(X,Y)
-            r_squared = model_single_layer.score(X, Y)
-            st.write("R² for the Single layer Model: ", int(r_squared*10000)/10000)
-
-            # Calculate the standard errors of the estimate
-            predictions = model_single_layer.predict(X)
-            mse = mean_squared_error(Y, predictions) 
-            n = len(Y)  # Number of observations
-            p = 2  # Number of predictors (including the intercept)
-            se = np.sqrt(mse / (n - p))
-
-            # Desired confidence level (e.g., 95% confidence interval)
-            confidence_level = 0.95
-
-            # Calculate the t-value for the given confidence level and degrees of freedom
-            t_value = stats.t.ppf((1 + confidence_level) / 2, df=n - p)
-
-            # Calculate the margin of error
-            margin_of_error = t_value * se
-
-            st.title(" ")
-
-            x_new_name = five_mm_value['nutrient value (ave.)'].tolist()
+                BMI: {Y_BMI_pre} kg/m²
+                        
+                Blood Pressure: {Y_BP_pre} mmHg
+                        
+                Overall Health: {Y_HS_pre}
+                        """)
+            elif mode == 1:
+                st.info(f"""
+                The output result is the preidction of Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
+                        
+                Blood Pressure: {Y_BP_pre} mmHg
+                        
+                Overall Health: {Y_HS_pre}
+                        """)
+            elif mode == 2:
+                st.info(f"""
+                The output result is the preidction of BMI and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
+                
+                BMI: {Y_BMI_pre} kg/m²
+                        
+                Overall Health: {Y_HS_pre}
+                        """)
+            elif mode ==3:
+                st.info(f"""
+                The output result is the preidction of Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
+                        
+                Overall Health: {Y_HS_pre}
+                        """)
+        
             
-            if BMI is not None:
-
-                x_new_name = x_new_name + [BMI]
-            if BP is not None:
-                x_new_name = x_new_name + [BP]
-            x_new_name = [x_new_name]
+        with tab2:
+            st.subheader(f'This is dataset with n={df_post.shape[0]} person')
+            st.table(df_post.head())
             
-            st.subheader("Predicted Health State")
-            predicted_value = model_single_layer.predict(x_new_name)
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write(f'***Predicted {y_name}***', int(predicted_value[0]*1000)/1000)
-            with col2:
-                st.write(f'***Sigma {y_name}***', int(mse*1000)/1000)
-            
-
 
             # Input for mean and sigma
-            mean = predicted_value[0]
-            sigma = mse
+            mean = Y_HS_pre[0]
+            sigma = mse_HS
 
             # Generate x values for plotting
             x_values = np.linspace(mean - 4*sigma, mean + 4*sigma, 1000)
@@ -318,17 +327,28 @@ else:
             # Plot the PDF using Plotly
 
             fig = go.Figure(data=go.Scatter(x=x_values, y=pdf_values, mode='lines'))
-            fig.update_layout(title='95% Confidence Interval', xaxis_title=y_name, yaxis_title=' ')
+
+
+            # Add a vertical line for the mean
+            fig.add_shape(
+                type='line',
+                x0=mean,
+                x1=mean,
+                y0=0,
+                y1=1,
+                xref='x',
+                yref='paper',
+                line=dict(color='red', width=2),
+                name='Mean'
+            )
+
+            fig.update_layout(title='95% Confidence Interval of the Health State Prediction Value', xaxis_title='health_state', yaxis_title=' ')
 
             # Update x-axis range from 0 to 1
-            if y_name == 'health_state':
-                fig.update_xaxes(range=[0, 2])
-            elif y_name == "BMI":
-                fig.update_xaxes(range = [0, 50])
-            else:
-                fig.update_xaxes(range = [-400 , 400])
-
+            fig.update_xaxes(range=[0, 1.5])
             st.plotly_chart(fig, use_container_width=True)
+
+
         
 
 
