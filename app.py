@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import scipy.stats as stats
 from scipy.stats import norm
 from sklearn.metrics import mean_squared_error
+import random
 
 
 
@@ -321,7 +322,7 @@ else:
 
             # Update x-axis range from 0 to 1
             if y_name == 'health_state':
-                fig.update_xaxes(range=[0, 1])
+                fig.update_xaxes(range=[0, 2])
             elif y_name == "BMI":
                 fig.update_xaxes(range = [0, 50])
             else:
