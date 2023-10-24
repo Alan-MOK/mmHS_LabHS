@@ -8,6 +8,7 @@ from scipy.stats import norm
 from sklearn.metrics import mean_squared_error
 
 
+
 def page_config():
     st.set_page_config(
         "mmHS x LabScore",
@@ -21,21 +22,85 @@ def calculate_pdf(mean, sigma, x_values):
     pdf_values = norm.pdf(x_values, loc=mean, scale=sigma)
     return pdf_values
 
+def meal():
+    mm = pd.DataFrame(
+        {
+            'item':["hamburger", "bean salad", "chicken pelau", "callaloo", "pizza", "pasta and beans", "tofu salad", "chicken pasta", "rice and bean", "pork snitzel and cabbage"],
+            'fibre':[1,15,7,10,4,10,12,6,8,5],
+            'protein':[100,60,80,10,100,50,60,80,100,100],
+            'animal%':[100, 0, 70, 10, 80, 0, 0, 85, 70, 100],
+            'sugar':[5, 1, 5, 1, 5, 2, 1, 5, 1, 5],
+            'salt':[10, 1, 5, 5, 10, 2, 1, 5, 1, 10]
+        }
+    )
+    return mm
+
+# def position(df, name):
+#     try:
+#         num = df.index[df['item'] == name].tolist()[0]
+#     except:
+#         num = 0
+#     return num
+
+
+# def positions(df, name_list):
+#     try:
+#         indexes = df.index[df['item'].isin(name_list)].tolist()
+#         indexes_integer = list(map(int, indexes))
+#     except:
+#         indexes_integer = 0
+#     return indexes_integer
+
+
+# if ['meals'] not in st.session_state:
+#     st.session_state['item_no'] = random.choices(range(0,10), k = 5)
+
 
 with st.sidebar:
     st.title("Please upload your data here")
-
-    
     uploaded_file = st.file_uploader("Choose a file")
-
 
 if uploaded_file is None:
     st.warning('Please upload data first.')
     st.stop()
 else:
+    with st.sidebar:
+        meals_opt = meal()
+        meals = []
+        POSs  = []
+    
+        for i in range(5):
+            # Generate a unique key for each selectbox using format string
+            key = f"meal_{i}"
+            # Create the selectbox widget and store the selected value in a variable
+            meal = st.selectbox(
+                f"No.{i + 1}", 
+                    meals_opt, 
+                    key=key,
+                    index=None,
+                    placeholder="Select Your meal mom ent...",)
+            meals.append(meal)
+
+
+        st.title(' ')
+        st.write("***In addition, you can enter your BMI and Blood Pressure level to achieve a better prediction on your Health State***")
+
+        BMI = st.number_input(
+            'Your BMI',
+            value=None,
+            placeholder="Enter number...",
+            step = 0.1
+            )
+        BP = st.number_input(
+            'Your Blood Pressure',
+            value=None,
+            placeholder="Enter number...",
+            step = 1
+            )
+
+    
+    
     df = pd.read_csv(uploaded_file)
-
-
     # pre-processing...
     # calculate an average value of Fiber, Protein, Animal%, Sugar, Salt then put them as X
     # take the average number of fibre, protein, animal%, sugar, and salt
@@ -51,112 +116,144 @@ else:
                                         'health_state': 'first'
                                         }).reset_index()
 
-    st.subheader("The data that you just uploaded:")
-    st.table(df_post.head())
+    # st.subheader("The data that you just uploaded:")
+    # st.table(df_post.head())
 
-
-    # select single lyaer or two layers
-
-    on = st.toggle('Two Layers Linear Regression Model'
-                    )
-
-    if on:
-        st.info('Two Layers Linear Regression Model is activated!')
-
-        X = df_post.iloc[:,1:6].values.tolist()
-        Y_1 = df_post['BMI'].values.tolist()
-        Y_2 = df_post['B.P.'].values.tolist()
-
-        Y = df_post.iloc[:, 6:8].values.tolist()
-        Z = df_post['health_state'].values.tolist()
-
-        model1Layer_1 = LinearRegression()
-        model1Layer_2 = LinearRegression()
-
-        model1Layer_1.fit(X,Y_1)
-        model1Layer_2.fit(X,Y_2)
-
-        model2Layer = LinearRegression()
-        model2Layer.fit(Y,Z)
-
-        col1, col_gap, col2 = st.columns([3, 2, 4])
+    if None in meals:
+        st.warning('Please select 5 meal moments')
+        st.stop()
+    else:
+        col1, col2, col3= st.columns(3)
         with col1:
-            st.subheader('First Layer')
-            st.write("R² for the 5 nutrients value to BMI Model: ", int(model1Layer_1.score(X, Y_1)*1000)/1000)
-            st.write("R² for the 5 nutrients value to B.P. Model: ", int(model1Layer_2.score(X, Y_2)*1000)/1000)
-        
-        with col2:
-            st.subheader('Second Layer')
-            st.write("R² for BMI and B.P. to Health State Model: ", int(model2Layer.score(Y, Z)*1000)/1000)
 
-        st.title(' ')
-
-        col1, col_gap, col2 = st.columns([3, 2, 4])
-        with col1:
-            st.subheader("Please enter new X value to predict Y")
-            st.write("**pre-filled with average value of the data*")
-            x_new = []
-            for x in df_post.iloc[:,1:6].columns:
-                # Get the user's selection for each checkbox
-                selected = st.number_input(x, step = 0.1, value=df[x].mean())
-                x_new.append(selected)  # Add the selected option to the list
-            x_new = [x_new]
-
-        with col2:
-            st.subheader("Predicted Y-value")
-            Y_1_predict = model1Layer_1.predict(x_new)
-            Y_2_predict = model1Layer_2.predict(x_new)
-
+            st.subheader("Your Input Meal Moment")
             
-            st.write("***1st Layer Linear Regression, Predicted BMI:***",int(Y_1_predict[0]*1000)/1000)
-            st.write("***1st Layer Linear Regression, Predicted B.P.:***",int(Y_2_predict[0]*1000)/1000)
+            # Given list
+            filter_list = meals
+
+            # Create a DataFrame with rows where 'Column1' values are in the filter_list
+            filtered_data = []
+            for value in meals:
+                mask = meals_opt['item'] == value
+                filtered_data.append(meals_opt[mask].iloc[0])
+
+            # Create a new DataFrame from the filtered data
+            filtered_meals_opt = pd.DataFrame(filtered_data)
+
+            # Resetting index of the new DataFrame
+            filtered_meals_opt.reset_index(drop=True, inplace=True)
+
+
+            nutrients = meals_opt.columns[1:]
+            
+            nutrient_value = []
+            for n in nutrients:
+                average_value = filtered_meals_opt[n].mean()
+                nutrient_value.append(average_value)
+            
+            five_mm_value = pd.DataFrame(
+                {
+                    'nutrients': nutrients,
+                    'nutrient value (ave.)':nutrient_value
+                }
+            )
+            for i in range(0,5):
+                st.write(f"No. {i+1}: ", meals[i])
+        with col2:
+            st.subheader("nutrient Value")
+            for i in range(0,5):
+                st.write(f"{five_mm_value['nutrients'].iloc[i]}:", five_mm_value['nutrient value (ave.)'].iloc[i])
+        with col3:
+            st.subheader("Personal Info")
+            if BMI is None:
+                BMI = None
+            else:
+                BMI = round(BMI,2)
+            st.write("BMI:", BMI, ' kg/m²')
+            st.write("Blood Pressure:", BP, " mmHg")
+
+
+        tab1, tab2 = st.tabs(['Singel Layers','Double Layers'])
+
+
+        with tab2:
+       
+            st.info('Double Layers Linear Regression Model is activated!')
+            st.write("""
+            This model will use only the 5 nutrients values to predict the BMI and the B.P. value, then in the second layer, 
+                     using the predicted value of BMI and B.P. to predict the Health State.
+                     """)
+
+            X = df_post.iloc[:,1:6].values.tolist()
+            Y_1 = df_post['BMI'].values.tolist()
+            Y_2 = df_post['B.P.'].values.tolist()
+
+            Y = df_post.iloc[:, 6:8].values.tolist()
+            Z = df_post['health_state'].values.tolist()
+
+            model1Layer_1 = LinearRegression()
+            model1Layer_2 = LinearRegression()
+
+            model1Layer_1.fit(X,Y_1)
+            model1Layer_2.fit(X,Y_2)
+
+            model2Layer = LinearRegression()
+            model2Layer.fit(Y,Z)
+
+            col1, col_gap, col2 = st.columns([3, 2, 4])
+            with col1:
+                st.subheader('First Layer')
+                st.write("R² for the 5 nutrients value to BMI Model: ", int(model1Layer_1.score(X, Y_1)*1000)/1000)
+                st.write("R² for the 5 nutrients value to B.P. Model: ", int(model1Layer_2.score(X, Y_2)*1000)/1000)
+            
+            with col2:
+                st.subheader('Second Layer')
+                st.write("R² for BMI and B.P. to Health State Model: ", int(model2Layer.score(Y, Z)*1000)/1000)
+
+            st.title(' ')
+
+
+            st.subheader("Predicted Health State")
+            x_new = [five_mm_value['nutrient value (ave.)'].to_list()]
+            
+            if BMI is None:
+                Y_1_predict = model1Layer_1.predict(x_new)
+            else:
+                Y_1_predict = [BMI]
+            
+            if BP is None:
+                Y_2_predict = model1Layer_2.predict(x_new)
+            else:
+                Y_2_predict = [BP]
 
             Y_2_input = [[Y_1_predict[0],Y_2_predict[0]]]
             Z_predict = model2Layer.predict(Y_2_input)
+
             st.write("***Two Layer Linear Regression, Predicted Health State:***",int(Z_predict[0]*1000)/1000)
 
-    else:
-        st.info('Single Layer Linear Regression Model is Activated')
 
-        columns = df_post.columns.to_list()
-        st.title(' ')
-        col1, col2, col3 = st.columns([4,4,2])
-        with col1:
-            st.write("Please identifly the y-value (output value) of the model")
-            y_name = st.radio(
-            "Please select one",
-            [columns[-3], columns[-2], columns[-1]],
-            index=None,
-            )
-            st.write("***Y-Value:***", f':rainbow[{y_name}]')
+        with tab1:
+            st.info('Single Layer Linear Regression Model is Activated')
+            columns = five_mm_value['nutrients'].to_list()
+            if BMI is not None:
+                columns.append("BMI")
+            if BP is not None:
+                columns.append("B.P.")
+            
 
-        with col2:
-            st.write("Please select the x-value (input value) of the model")
-            if y_name is None:
-                st.stop()
-            elif y_name == 'BMI' or y_name == 'B.P.':
-                x_name = []
-                # Use a for loop to create checkboxes
-                for column in columns[1:6]:
-                    # Get the user's selection for each checkbox
-                    selected = st.checkbox(column)
-                    if selected:
-                        x_name.append(column)  # Add the selected option to the list
-            else:
-                x_name = []
-                # Use a for loop to create checkboxes
-                for column in columns[1:-1]:
-                    # Get the user's selection for each checkbox
-                    selected = st.checkbox(column)
-                    if selected:
-                        x_name.append(column)  # Add the selected option to the list
+            st.title(' ')
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("The output value of the model")
+                
+                y_name = df_post.columns.tolist()[-1]
+                st.write("***Y-Value:***", f':rainbow[{y_name}]')
 
-        with col3:
-            st.write('***X-Value:***', x_name)
+            with col2:
+                x_name = columns
+                st.write('***X-Value:***', x_name)
 
-        if x_name == []:
-            st.stop()
-        else:
+
             X = df_post[x_name].values.tolist()
             Y = df_post[y_name].values.tolist()
 
@@ -183,24 +280,24 @@ else:
             margin_of_error = t_value * se
 
             st.title(" ")
-            col1, col_gap, col2 = st.columns([4,1,4])
-            with col1:
-                st.subheader("Please enter new X value to predict Y")
-                st.write("**pre-filled with average value of the data*")
-                x_new_name = []
-                for x in x_name:
-                    # Get the user's selection for each ceckbox
-                    selected = st.number_input(x, step = 0.1, value=df[x].mean())
-                    x_new_name.append(selected)  # Add the selected option to the list
-            
-                x_new_name = [x_new_name]
 
-            with col2:
-                st.subheader("Predicted Y-value")
-                predicted_value = model_single_layer.predict(x_new_name)
+            x_new_name = five_mm_value['nutrient value (ave.)'].tolist()
+            
+            if BMI is not None:
+
+                x_new_name = x_new_name + [BMI]
+            if BP is not None:
+                x_new_name = x_new_name + [BP]
+            x_new_name = [x_new_name]
+            
+            st.subheader("Predicted Health State")
+            predicted_value = model_single_layer.predict(x_new_name)
+            col1, col2 = st.columns(2)
+            with col1:
                 st.write(f'***Predicted {y_name}***', int(predicted_value[0]*1000)/1000)
+            with col2:
                 st.write(f'***Sigma {y_name}***', int(mse*1000)/1000)
-                
+            
 
 
             # Input for mean and sigma
@@ -231,5 +328,15 @@ else:
                 fig.update_xaxes(range = [-400 , 400])
 
             st.plotly_chart(fig, use_container_width=True)
+        
 
 
+    css = '''
+    <style>
+        .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
+        font-size:1.5rem;
+        }
+    </style>
+    '''
+
+    st.markdown(css, unsafe_allow_html=True)
