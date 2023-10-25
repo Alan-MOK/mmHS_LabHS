@@ -399,7 +399,8 @@ else:
                 # Create a new DataFrame from the new data
                 new_row = pd.DataFrame(new_data)
                 # Append the new row to the original DataFrame
-                df_post = df_post.append(new_row, ignore_index=True)
+                # df_post = df_post.append(new_row, ignore_index=True)
+                df_post = pd.concat([df_post, new_row], ignore_index=True)
                 st.session_state['df_post'] = df_post
                 st.toast('New Data has been added!')
                 st.session_state['new_df'] += 1
