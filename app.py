@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 import scipy.stats as stats
 from scipy.stats import norm
 from sklearn.metrics import mean_squared_error
-import random
+
 
 
 
@@ -180,7 +180,7 @@ else:
             st.write("Blood Pressure:", BP, " mmHg")
 
 
-        tab1, tab2 = st.tabs(['Mode','Data Table'])
+        tab1, tab2 = st.tabs(['Model','Data Table'])
     
         
         if BMI is None and BP is None:
@@ -275,33 +275,33 @@ else:
                 st.info(f"""
                 The output result is the preidction of BMI, Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
                 
-                BMI: {Y_BMI_pre} kg/m²
+                BMI: {int(Y_BMI_pre*100)/100} kg/m²
                         
-                Blood Pressure: {Y_BP_pre} mmHg
+                Blood Pressure: {int(Y_BP_pre)} mmHg
                         
-                Overall Health: {Y_HS_pre}
+                Overall Health State: {int(Y_HS_pre*1000)/1000}
                         """)
             elif mode == 1:
                 st.info(f"""
                 The output result is the preidction of Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
                         
-                Blood Pressure: {Y_BP_pre} mmHg
+                Blood Pressure: {int(Y_BP_pre)} mmHg
                         
-                Overall Health: {Y_HS_pre}
+                Overall Health State: {int(Y_HS_pre*1000)/1000}
                         """)
             elif mode == 2:
                 st.info(f"""
                 The output result is the preidction of BMI and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
                 
-                BMI: {Y_BMI_pre} kg/m²
+                BMI: {int(Y_BMI_pre*100)/100} kg/m²
                         
-                Overall Health: {Y_HS_pre}
+                Overall Health State: {int(Y_HS_pre*1000)/1000}
                         """)
             elif mode ==3:
                 st.info(f"""
                 The output result is the preidction of Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
                         
-                Overall Health: {Y_HS_pre}
+                Overall Health State: {int(Y_HS_pre*1000)/1000}
                         """)
         
             
@@ -349,7 +349,7 @@ else:
             st.plotly_chart(fig, use_container_width=True)
 
 
-        
+
 
 
     css = '''
