@@ -59,6 +59,36 @@ def get_new_X(mode):
         new_X = five_mm_value['nutrient value (ave.)'].tolist()+[BMI,BP]
     return [new_X]
 
+@st.cache_data
+def get_data():
+    df = pd.read_csv(uploaded_file)
+    # pre-processing...
+    # calculate an average value of Fiber, Protein, Animal%, Sugar, Salt then put them as X
+    # take the average number of fibre, protein, animal%, sugar, and salt
+    # take the first nunmber of BMI Blood Pressure, and health_state
+
+    df_post = df.groupby('person').agg({'fibre': 'mean', 
+                                        'protein': 'mean',
+                                        'animal%': 'mean',
+                                        'sugar': 'mean', 
+                                        'salt': 'mean',
+                                        'BMI': 'first',
+                                        'B.P.': 'first',
+                                        'health_state': 'first'
+                                        }).reset_index()
+
+    # st.subheader("The data that you just uploaded:")
+    # st.table(df_post.head())
+    return df_post
+
+
+if 'df_post' not in st.session_state:
+    st.session_state['df_post'] = None
+
+if 'new_df' not in st.session_state:
+    st.session_state['new_df'] = 0
+
+
 with st.sidebar:
     st.title("Please upload your data here")
     uploaded_file = st.file_uploader("Choose a file")
@@ -67,6 +97,13 @@ if uploaded_file is None:
     st.warning('Please upload data first.')
     st.stop()
 else:
+    
+    if st.session_state['df_post'] is None:
+        df_post = get_data()
+        st.session_state['df_post'] = df_post
+    else:
+        df_post = st.session_state['df_post']
+
     with st.sidebar:
         meals_opt = meal()
         meals = []
@@ -81,7 +118,7 @@ else:
                     meals_opt, 
                     key=key,
                     index=None,
-                    placeholder="Select Your meal mom ent...",)
+                    placeholder="Select Your meal moment...",)
             meals.append(meal)
 
 
@@ -104,27 +141,8 @@ else:
             max_value = 200,
             step = 1
             )
-
     
     
-    df = pd.read_csv(uploaded_file)
-    # pre-processing...
-    # calculate an average value of Fiber, Protein, Animal%, Sugar, Salt then put them as X
-    # take the average number of fibre, protein, animal%, sugar, and salt
-    # take the first nunmber of BMI Blood Pressure, and health_state
-
-    df_post = df.groupby('person').agg({'fibre': 'mean', 
-                                        'protein': 'mean',
-                                        'animal%': 'mean',
-                                        'sugar': 'mean', 
-                                        'salt': 'mean',
-                                        'BMI': 'first',
-                                        'B.P.': 'first',
-                                        'health_state': 'first'
-                                        }).reset_index()
-
-    # st.subheader("The data that you just uploaded:")
-    # st.table(df_post.head())
 
     if None in meals:
         st.warning('Please select 5 meal moments')
@@ -197,6 +215,8 @@ else:
             model_BP.fit(X, Y_BP)
             model_HS.fit(X, Y_HS)
 
+            st.title(' ')
+            st.subheader("Model's info")
             st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
             st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
             st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
@@ -221,6 +241,8 @@ else:
             model_BP.fit(X, Y_BP)
             model_HS.fit(X, Y_HS)
 
+            st.title(' ')
+            st.subheader("Model's info")
             st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
             st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
             
@@ -243,6 +265,8 @@ else:
             model_BMI.fit(X, Y_BMI)
             model_HS.fit(X, Y_HS)
 
+            st.title(' ')
+            st.subheader("Model's info")
             st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
             st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
 
@@ -261,6 +285,8 @@ else:
             model_HS = LinearRegression()
             model_HS.fit(X, Y_HS)
 
+            st.title(' ')
+            st.subheader("Model's info")
             st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
 
             Y_HS_bar = model_HS.predict(X)
@@ -268,9 +294,14 @@ else:
 
             new_X = get_new_X(mode)
             Y_HS_pre = model_HS.predict(new_X)
+            
+        # make sure the health state fall into [0,1]
+        Y_HS_pre[0] = max(Y_HS_pre[0], 0)
+        Y_HS_pre[0] = min(Y_HS_pre[0], 1)
 
 
         with tab1:
+            st.subheader("Model's Prediction")
             if mode == 0:
                 st.info(f"""
                 The output result is the preidction of BMI, Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
@@ -306,7 +337,7 @@ else:
         
             
         with tab2:
-            st.subheader(f'This is dataset with n={df_post.shape[0]} person')
+            st.subheader(f'This is the head of the dataset')
             st.table(df_post.head())
             
 
@@ -345,9 +376,51 @@ else:
             fig.update_layout(title='95% Confidence Interval of the Health State Prediction Value', xaxis_title='health_state', yaxis_title=' ')
 
             # Update x-axis range from 0 to 1
-            fig.update_xaxes(range=[0, 1.5])
+            fig.update_xaxes(range=[-0.2, 1.2])
             st.plotly_chart(fig, use_container_width=True)
 
+    with st.sidebar:
+        # create a add to database if BMI and BP are not empty
+        if BMI is not None and BP is not None:
+            store_button = st.button("Add this data point to the data set")
+            
+            if store_button:
+                new_data = {
+                    'person': [df_post.shape[0]+1],
+                    'fibre': [five_mm_value['nutrient value (ave.)'].iloc[0]],
+                    'protein': [five_mm_value['nutrient value (ave.)'].iloc[1]],
+                    'animal%': [five_mm_value['nutrient value (ave.)'].iloc[2]],
+                    'sugar': [five_mm_value['nutrient value (ave.)'].iloc[3]],
+                    'salt': [five_mm_value['nutrient value (ave.)'].iloc[4]],
+                    "BMI": [BMI],
+                    "B.P.": [BP],
+                    "health_state": Y_HS_pre
+                } 
+                # Create a new DataFrame from the new data
+                new_row = pd.DataFrame(new_data)
+                # Append the new row to the original DataFrame
+                df_post = df_post.append(new_row, ignore_index=True)
+                st.session_state['df_post'] = df_post
+                st.toast('New Data has been added!')
+                st.session_state['new_df'] += 1
+
+    st.success(f"""The orignal length of the dataset is: 
+                {df_post.shape[0] - st.session_state['new_df']}
+
+                There are {st.session_state['new_df']} new data points have been stored.
+The current data length is: {df_post.shape[0]}
+                """)   
+    
+
+    with st.sidebar:
+        st.title('')
+       
+        st.error('')
+        reset = st.button("***Click it TWICE to reset all***")
+        if reset:
+            st.cache_data.clear()
+            st.session_state['df_post'] = None
+            st.session_state['new_df'] = 0
 
 
 
