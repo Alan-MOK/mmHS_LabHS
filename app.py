@@ -217,9 +217,9 @@ else:
 
             st.title(' ')
             st.subheader("Model's info")
-            st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
-            st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
-            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
+            # st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
+            # st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
+            # st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
 
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
@@ -243,8 +243,8 @@ else:
 
             st.title(' ')
             st.subheader("Model's info")
-            st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
-            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
+            # st.write("R² for the 5 nutrients value to B.P. Model: ", int(model_BP.score(X, Y_BP)*1000)/1000)
+            # st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
             
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
@@ -266,9 +266,9 @@ else:
             model_HS.fit(X, Y_HS)
 
             st.title(' ')
-            st.subheader("Model's info")
-            st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
-            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
+            # st.subheader("Model's info")
+            # st.write("R² for the 5 nutrients value to BMI Model: ", int(model_BMI.score(X, Y_BMI)*1000)/1000)
+            # st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
 
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
@@ -287,7 +287,7 @@ else:
 
             st.title(' ')
             st.subheader("Model's info")
-            st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
+            # st.write("R² for the 5 nutrients value to Health State. Model: ", int(model_HS.score(X, Y_HS)*1000)/1000)
 
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
