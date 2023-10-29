@@ -9,7 +9,6 @@ from sklearn.metrics import mean_squared_error
 
 
 
-
 def page_config():
     st.set_page_config(
         "mmHS x LabScore",
@@ -37,6 +36,7 @@ def meal():
     return mm
 
 def get_X(mode):
+    X_base = df_post.iloc[:, [1, 2, 3, 4, 5]].values.tolist()
     if mode == 0:
         X = df_post.iloc[:, [1, 2, 3, 4, 5]].values.tolist()
     elif mode == 1:
@@ -45,10 +45,11 @@ def get_X(mode):
         X = df_post.iloc[:, [1, 2, 3, 4, 5, 7]].values.tolist()
     elif mode == 3:
         X = df_post.iloc[:, [1, 2, 3, 4, 5, 6, 7]].values.tolist()
-    return X
+    return X, X_base 
 
 
 def get_new_X(mode):
+    new_X_base = five_mm_value['nutrient value (ave.)'].tolist()
     if mode == 0:
         new_X = five_mm_value['nutrient value (ave.)'].tolist()
     elif mode == 1:
@@ -57,7 +58,7 @@ def get_new_X(mode):
         new_X = five_mm_value['nutrient value (ave.)'].tolist()+[BP]
     elif mode == 3:
         new_X = five_mm_value['nutrient value (ave.)'].tolist()+[BMI,BP]
-    return [new_X]
+    return [new_X], [new_X_base]
 
 @st.cache_data
 def get_data():
@@ -82,11 +83,43 @@ def get_data():
     return df_post
 
 
+def reset_number_input():
+    st.session_state['BMI'] =  None
+    st.session_state['BP'] = None
+    st.session_state['button'] = True
+
+
+
+
+
+
+
+# Function to create a button that can only be clicked once
+def once_click_button(label, key):
+    if st.session_state.get(key, True):
+        button_clicked = st.button(label)
+        if button_clicked:
+            st.session_state[key] = False
+        return button_clicked
+    else:
+        st.write("Button already clicked!")
+        return False
+
+
 if 'df_post' not in st.session_state:
     st.session_state['df_post'] = None
 
 if 'new_df' not in st.session_state:
     st.session_state['new_df'] = 0
+
+if 'button' not in st.session_state:
+    st.session_state['button'] = True
+
+if "BMI" not in st.session_state:
+    st.session_state['BMI'] = None
+
+if "BP" not in st.session_state:
+    st.session_state['BP'] = None
 
 
 with st.sidebar:
@@ -125,13 +158,15 @@ else:
         st.title(' ')
         st.write("***In addition, you can enter your BMI and Blood Pressure level to achieve a better prediction on your Health State***")
 
+
         BMI = st.number_input(
             'Your BMI',
             value=None,
             placeholder="Enter number...",
             step = 0.1,
             min_value = 17.5,
-            max_value = 35.0
+            max_value = 35.0,
+            key='BMI'
             )
         BP = st.number_input(
             'Your Blood Pressure',
@@ -139,10 +174,11 @@ else:
             placeholder="Enter number...",
             min_value = 110,
             max_value = 200,
-            step = 1
+            step = 1,
+            key='BP'
             )
     
-    
+
 
     if None in meals:
         st.warning('Please select 5 meal moments')
@@ -203,7 +239,7 @@ else:
         
         if BMI is None and BP is None:
             mode = 0
-            X = get_X(mode)
+            X, X_base = get_X(mode)
             Y_BMI = df_post['BMI'].values.tolist()
             Y_BP = df_post['B.P.'].values.tolist()
             Y_HS = df_post['health_state'].values.tolist()
@@ -211,8 +247,8 @@ else:
             model_BP = LinearRegression()
             model_HS = LinearRegression()
 
-            model_BMI.fit(X, Y_BMI)
-            model_BP.fit(X, Y_BP)
+            model_BMI.fit(X_base, Y_BMI)
+            model_BP.fit(X_base, Y_BP)
             model_HS.fit(X, Y_HS)
 
             st.title(' ')
@@ -224,21 +260,24 @@ else:
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
 
-            new_X = get_new_X(mode)
-            Y_BMI_pre = model_BMI.predict(new_X)
-            Y_BP_pre = model_BP.predict(new_X)
+            new_X, new_X_base = get_new_X(mode)
+            Y_BMI_pre = model_BMI.predict(new_X_base)
+            Y_BP_pre = model_BP.predict(new_X_base)
             Y_HS_pre = model_HS.predict(new_X)
 
         elif BMI is not None and BP is None:
             mode = 1
-            X = get_X(mode)
+            X, X_base = get_X(mode)
+            Y_BMI = df_post['BMI'].values.tolist()
             Y_BP = df_post['B.P.'].values.tolist()
             Y_HS = df_post['health_state'].values.tolist()
 
+            model_BMI = LinearRegression()
             model_BP = LinearRegression()
             model_HS = LinearRegression()
 
-            model_BP.fit(X, Y_BP)
+            model_BMI.fit(X_base, Y_BMI)
+            model_BP.fit(X_base, Y_BP)
             model_HS.fit(X, Y_HS)
 
             st.title(' ')
@@ -249,20 +288,24 @@ else:
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
 
-            new_X = get_new_X(mode)
-            Y_BP_pre = model_BP.predict(new_X)
+            new_X, new_X_base = get_new_X(mode)
+            Y_BMI_pre = model_BMI.predict(new_X_base)
+            Y_BP_pre = model_BP.predict(new_X_base)
             Y_HS_pre = model_HS.predict(new_X)
 
         elif BMI is None and BP is not None:
             mode = 2
-            X = get_X(mode)
+            X, X_base = get_X(mode)
             Y_BMI = df_post['BMI'].values.tolist()
+            Y_BP = df_post['B.P.'].values.tolist()
             Y_HS = df_post['health_state'].values.tolist()
 
             model_BMI = LinearRegression()
+            model_BP = LinearRegression()
             model_HS = LinearRegression()
 
-            model_BMI.fit(X, Y_BMI)
+            model_BMI.fit(X_base, Y_BMI)
+            model_BP.fit(X_base, Y_BP)
             model_HS.fit(X, Y_HS)
 
             st.title(' ')
@@ -273,16 +316,24 @@ else:
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
 
-            new_X = get_new_X(mode)
-            Y_BMI_pre = model_BMI.predict(new_X)
+            new_X, new_X_base = get_new_X(mode)
+            Y_BMI_pre = model_BMI.predict(new_X_base)
+            Y_BP_pre = model_BP.predict(new_X_base)
             Y_HS_pre = model_HS.predict(new_X)
 
         else:
             mode = 3
-            X = get_X(mode)
+            X, X_base = get_X(mode)
+            Y_BMI = df_post['BMI'].values.tolist()
+            Y_BP = df_post['B.P.'].values.tolist()
             Y_HS = df_post['health_state'].values.tolist()
 
+            model_BMI = LinearRegression()
+            model_BP = LinearRegression()
             model_HS = LinearRegression()
+
+            model_BMI.fit(X_base, Y_BMI)
+            model_BP.fit(X_base, Y_BP)
             model_HS.fit(X, Y_HS)
 
             st.title(' ')
@@ -292,7 +343,9 @@ else:
             Y_HS_bar = model_HS.predict(X)
             mse_HS = mean_squared_error(Y_HS, Y_HS_bar)  
 
-            new_X = get_new_X(mode)
+            new_X, new_X_base = get_new_X(mode)
+            Y_BMI_pre = model_BMI.predict(new_X_base)
+            Y_BP_pre = model_BP.predict(new_X_base)
             Y_HS_pre = model_HS.predict(new_X)
             
         # make sure the health state fall into [0,1]
@@ -302,39 +355,17 @@ else:
 
         with tab1:
             st.subheader("Model's Prediction")
-            if mode == 0:
-                st.info(f"""
-                The output result is the preidction of BMI, Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
-                
-                BMI: {int(Y_BMI_pre*100)/100} kg/m²
-                        
-                Blood Pressure: {int(Y_BP_pre)} mmHg
-                        
-                Overall Health State: {int(Y_HS_pre*1000)/1000}
-                        """)
-            elif mode == 1:
-                st.info(f"""
-                The output result is the preidction of Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
-                        
-                Blood Pressure: {int(Y_BP_pre)} mmHg
-                        
-                Overall Health State: {int(Y_HS_pre*1000)/1000}
-                        """)
-            elif mode == 2:
-                st.info(f"""
-                The output result is the preidction of BMI and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
-                
-                BMI: {int(Y_BMI_pre*100)/100} kg/m²
-                        
-                Overall Health State: {int(Y_HS_pre*1000)/1000}
-                        """)
-            elif mode ==3:
-                st.info(f"""
-                The output result is the preidction of Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
-                        
-                Overall Health State: {int(Y_HS_pre*1000)/1000}
-                        """)
-        
+
+            st.info(f"""
+            The output result is the preidction of BMI, Blood Pressure and Health State. If you were to consistently eat such meals these are associated with the following health metrics: 
+            
+            BMI: {int(Y_BMI_pre*100)/100} kg/m²
+                    
+            Blood Pressure: {int(Y_BP_pre)} mmHg
+                    
+            Overall Health State: {int(Y_HS_pre*1000)/1000}
+                    """)
+
             
         with tab2:
             st.subheader(f'This is the head of the dataset')
@@ -381,9 +412,9 @@ else:
 
     with st.sidebar:
         # create a add to database if BMI and BP are not empty
-        if BMI is not None and BP is not None:
+        
+        if BMI is not None and BP is not None and st.session_state['button']:
             store_button = st.button("Add this data point to the data set")
-            
             if store_button:
                 new_data = {
                     'person': [df_post.shape[0]+1],
@@ -404,6 +435,12 @@ else:
                 st.session_state['df_post'] = df_post
                 st.toast('New Data has been added!')
                 st.session_state['new_df'] += 1
+                st.session_state['button'] = False
+                
+        if st.session_state['button']==False:
+            st.success("Data has been SAVED!! Please Clear input to enter new data point...")
+            st.button('Clear input number', on_click = reset_number_input)
+
 
     st.success(f"""The orignal length of the dataset is: 
                 {df_post.shape[0] - st.session_state['new_df']}
@@ -417,13 +454,11 @@ The current data length is: {df_post.shape[0]}
         st.title('')
        
         st.error('')
-        reset = st.button("***Click it TWICE to reset all***")
+        reset = st.button("***Click it TWICE to reset all***",  on_click = reset_number_input)
         if reset:
             st.cache_data.clear()
             st.session_state['df_post'] = None
             st.session_state['new_df'] = 0
-
-
 
 
     css = '''
