@@ -128,6 +128,7 @@ with st.sidebar:
 
 if uploaded_file is None:
     st.warning('Please upload data first.')
+    st.write("version 1.51030")
     st.stop()
 else:
     
