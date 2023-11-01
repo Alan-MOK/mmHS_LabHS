@@ -62,7 +62,8 @@ def get_new_X(mode):
 
 @st.cache_data
 def get_data():
-    df = pd.read_csv(uploaded_file)
+    # df = pd.read_csv(uploaded_file)
+    df = uploaded_file
     # pre-processing...
     # calculate an average value of Fiber, Protein, Animal%, Sugar, Salt then put them as X
     # take the average number of fibre, protein, animal%, sugar, and salt
@@ -78,8 +79,7 @@ def get_data():
                                         'health_state': 'first'
                                         }).reset_index()
 
-    # st.subheader("The data that you just uploaded:")
-    # st.table(df_post.head())
+
     return df_post
 
 
@@ -123,9 +123,10 @@ if "BP" not in st.session_state:
 
 
 with st.sidebar:
+    st.write("version 1.51101")
     st.title("Please upload your data here")
-    uploaded_file = st.file_uploader("Choose a file")
-
+    # uploaded_file = st.file_uploader("Choose a file")
+    uploaded_file = pd.read_csv('data(1).csv')
 if uploaded_file is None:
     st.warning('Please upload data first.')
     st.write("version 1.51030")
